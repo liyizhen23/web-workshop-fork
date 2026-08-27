@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Button, Input, message, Spin } from "antd";
 import { user } from "./getUser";
 import * as graphql from "./graphql";
@@ -94,7 +95,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ user, room, handleClose }) => {
         <Input
           placeholder="输入消息"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setText(e.target.value)}
           style={{ fontSize: "18px", height: "40px" }}
         />
         <Button

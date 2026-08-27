@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button, List, message, Spin, Upload } from "antd";
+import { Button, List, message, Popconfirm, Spin, Upload } from "antd";
+import type { UploadProps } from "antd";
 import {
+  DeleteOutlined,
   InboxOutlined,
   DownloadOutlined,
   ReloadOutlined,
@@ -84,6 +86,20 @@ const FileShare: React.FC<FileShareProps> = ({ room, handleClose }) => {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
+  const deleteFile = async (filename: string) => {
+    try {
+      await axios.post("/file/delete", {
+        room: room?.uuid,
+        filename,
+      });
+      setFileList((current) => current.filter((file) => file !== filename));
+      message.success("删除文件成功！");
+    } catch (error) {
+      console.error(error);
+      message.error("删除文件失败，请刷新列表后重试！");
+    }
+  };
+
   const Refresh = () => (
     <Button
       type="link"
@@ -135,13 +151,21 @@ const FileShare: React.FC<FileShareProps> = ({ room, handleClose }) => {
           文件共享空间
         </Text>
       </Container>
-      <FileList roomUUID={room.uuid} filelist={fileList} />
+      <FileList
+        roomUUID={room.uuid}
+        filelist={fileList}
+        onDelete={deleteFile}
+      />
       <div
         className="need-interaction"
         style={{ marginTop: "12px", width: "100%" }}
       >
         <Dragger
-          customRequest={({ file, onSuccess, onError }) => {
+          customRequest={({
+            file,
+            onSuccess,
+            onError,
+          }: Parameters<NonNullable<UploadProps["customRequest"]>>[0]) => {
             uploadFile(file as File, onSuccess, onError);
           }}
           showUploadList={false}
@@ -160,25 +184,66 @@ const FileShare: React.FC<FileShareProps> = ({ room, handleClose }) => {
 interface FileListProps {
   roomUUID: string;
   filelist: string[];
+  onDelete: (filename: string) => Promise<void>;
 }
 
-const FileList: React.FC<FileListProps> = ({ roomUUID, filelist }) => {
+const FileList: React.FC<FileListProps> = ({ roomUUID, filelist, onDelete }) => {
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
+
+  const handleDelete = async (filename: string) => {
+    setDeletingFile(filename);
+    try {
+      await onDelete(filename);
+    } finally {
+      setDeletingFile(null);
+    }
+  };
+
   const Download = (filename: string) => (
     <Button
+      key={`download-${filename}`}
       type="link"
       style={{ fontSize: "18px", width: "18px", height: "18px", padding: 0 }}
       onClick={async () => await downloadFile(roomUUID, filename)}
+      aria-label={`下载 ${filename}`}
     >
       <DownloadOutlined />
     </Button>
   );
+
+  const Delete = (filename: string) => (
+    <Popconfirm
+      key={`delete-${filename}`}
+      title="确定删除这个文件吗？"
+      description={filename}
+      okText="删除"
+      cancelText="取消"
+      okButtonProps={{ danger: true }}
+      onConfirm={() => handleDelete(filename)}
+    >
+      <Button
+        type="link"
+        danger
+        loading={deletingFile === filename}
+        disabled={deletingFile !== null && deletingFile !== filename}
+        style={{ fontSize: "18px", width: "18px", height: "18px", padding: 0 }}
+        aria-label={`删除 ${filename}`}
+      >
+        <DeleteOutlined />
+      </Button>
+    </Popconfirm>
+  );
+
   return (
     <Scroll>
       <List
         size="small"
         dataSource={filelist}
         renderItem={(filename) => (
-          <List.Item style={{ padding: "8px" }} actions={[Download(filename)]}>
+          <List.Item
+            style={{ padding: "8px" }}
+            actions={[Download(filename), Delete(filename)]}
+          >
             <Text style={{ wordBreak: "break-all" }}>{filename}</Text>
           </List.Item>
         )}

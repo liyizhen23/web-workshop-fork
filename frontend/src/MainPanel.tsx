@@ -1,12 +1,15 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Form, Input, List, message, Modal } from "antd";
+import { Button, Form, Input, List, message, Modal, Popconfirm } from "antd";
 import {
+  DeleteOutlined,
   UserOutlined,
   LoginOutlined,
   LogoutOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
+import axios from "axios";
 import * as graphql from "./graphql";
 import { Bubble, Card, Link, Scroll, Text } from "./Components";
 import { user } from "./getUser";
@@ -31,13 +34,33 @@ const MainPanel: React.FC<MainPanelProps> = (props) => {
 
 const User: React.FC<MainPanelProps> = ({ user }) => {
   const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
 
-  const handleClick = () => {
-    if (user) {
-      localStorage.removeItem("token");
-      navigate(0);
-    } else {
-      navigate("/login");
+  const clearLoginState = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+  };
+
+  const handleLoginOrLogout = () => {
+    if (!user) {
+      return navigate("/login");
+    }
+    clearLoginState();
+    navigate(0);
+  };
+
+  const handleDeleteUser = async () => {
+    setDeleting(true);
+    try {
+      await axios.get("/user/delete");
+      clearLoginState();
+      message.success("账号及相关记录已删除");
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error(error);
+      message.error("删除账号失败，请稍后重试");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -57,6 +80,8 @@ const User: React.FC<MainPanelProps> = ({ user }) => {
       <Text
         size="title"
         style={{
+          flex: 1,
+          minWidth: 0,
           height: "42px",
           lineHeight: 1,
           marginLeft: "12px",
@@ -69,15 +94,41 @@ const User: React.FC<MainPanelProps> = ({ user }) => {
         style={{
           width: "36px",
           height: "36px",
-          fontSize: "36px",
-          marginLeft: "12px",
+          fontSize: "24px",
+          marginLeft: "6px",
         }}
-        onClick={handleClick}
+        onClick={handleLoginOrLogout}
         type="link"
         danger={user ? true : false}
+        aria-label={user ? "退出登录" : "登录"}
       >
         {user ? <LogoutOutlined /> : <LoginOutlined />}
       </Button>
+      {user && (
+        <Popconfirm
+          title="确定删除账号吗？"
+          description="账号、消息及会议关系将被永久删除，此操作不可恢复。"
+          okText="确认删除"
+          cancelText="取消"
+          okButtonProps={{ danger: true, loading: deleting }}
+          onConfirm={handleDeleteUser}
+        >
+          <Button
+            style={{
+              width: "36px",
+              height: "36px",
+              fontSize: "22px",
+              padding: 0,
+            }}
+            type="link"
+            danger
+            disabled={deleting}
+            aria-label="删除账号"
+          >
+            <DeleteOutlined />
+          </Button>
+        </Popconfirm>
+      )}
     </Bubble>
   );
 };
@@ -261,7 +312,7 @@ const RoomList: React.FC<MainPanelProps> = ({
         onCancel={() => setOpen(false)}
         cancelText="取消"
         destroyOnClose
-        modalRender={(children) => (
+        modalRender={(children: ReactNode) => (
           <Form onFinish={handleCreateRoom} clearOnDestroy>
             {children}
           </Form>

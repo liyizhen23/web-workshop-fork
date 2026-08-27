@@ -1,6 +1,7 @@
 {
   "homepage": "./",
   "dependencies": {
+    "@ant-design/pro-form": "2.29.0",
     "@ant-design/pro-components": "2.7.15",
     "@apollo/client": "3.11.4",
     "antd": "5.20.2",

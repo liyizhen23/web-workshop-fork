@@ -6,7 +6,7 @@ import {
   LoginFormPage,
   ProFormCheckbox,
   ProFormText,
-} from "@ant-design/pro-components";
+} from "@ant-design/pro-form";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 
 const { Link } = Typography;

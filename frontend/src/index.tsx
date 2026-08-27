@@ -4,7 +4,7 @@ import { createHashRouter, RouterProvider } from "react-router-dom";
 import axios from "axios";
 import { ApolloProvider } from "@apollo/client";
 import { message } from "antd";
-import Draggable from "react-draggable";
+import Draggable, { type DraggableProps } from "react-draggable";
 import "./index.css";
 import { client } from "./apollo";
 import * as graphql from "./graphql";
@@ -16,6 +16,12 @@ const MainPanel = React.lazy(() => import("./MainPanel"));
 const LoginPage = React.lazy(() => import("./LoginPage"));
 const ChatBox = React.lazy(() => import("./ChatBox"));
 const FileShare = React.lazy(() => import("./FileShare"));
+
+// react-draggable 4.x ships a legacy class declaration that TypeScript 5.5
+// does not recognize as a JSX component when used with React 18 types.
+const DraggableComponent = Draggable as unknown as React.ComponentType<
+  Partial<DraggableProps>
+>;
 
 axios.defaults.baseURL = process.env.REACT_APP_BACKEND_URL!;
 axios.interceptors.request.use((config) => {
@@ -41,7 +47,7 @@ const MyDraggable: React.FC<React.PropsWithChildren<MyDraggableProps>> = ({
   style,
 }) => {
   return (
-    <Draggable
+    <DraggableComponent
       bounds="body"
       grid={[4, 4]}
       onStart={() => setCurrentDrag(oid)}
@@ -57,7 +63,7 @@ const MyDraggable: React.FC<React.PropsWithChildren<MyDraggableProps>> = ({
       >
         {children}
       </div>
-    </Draggable>
+    </DraggableComponent>
   );
 };
 
